@@ -145,7 +145,7 @@ spec:
             - --port=8443
             - -v=4
             - 2>&1
-          image: volcanosh/vc-webhook-manager:latest
+          image: harbor-dev.platform.baai-inner.ac.cn/airs-system/business/vc-webhook-manager:v1.6.0.gang
           imagePullPolicy: IfNotPresent
           name: admission
           volumeMounts:
@@ -180,7 +180,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: main
-          image: volcanosh/vc-webhook-manager:latest
+          image: harbor-dev.platform.baai-inner.ac.cn/airs-system/business/vc-webhook-manager:v1.6.0.gang
           imagePullPolicy: IfNotPresent
           command: ["./gen-admission-secret.sh", "--service", "volcano-admission-service", "--namespace",
                     "volcano-system", "--secret", "volcano-admission-secret"]
@@ -8502,7 +8502,7 @@ spec:
       priorityClassName: system-cluster-critical
       containers:
           - name: volcano-controllers
-            image: volcanosh/vc-controller-manager:latest
+            image: harbor-dev.platform.baai-inner.ac.cn/airs-system/business/vc-controller-manager:v1.6.0.gang
             args:
               - --logtostderr
               - --enable-healthz=true
@@ -8525,7 +8525,7 @@ metadata:
   namespace: volcano-system
 data:
   volcano-scheduler.conf: |
-    actions: "enqueue, allocate, backfill"
+    actions: "enqueue, reclaim, allocate, preempt, backfill"
     tiers:
     - plugins:
       - name: priority
@@ -8651,11 +8651,20 @@ spec:
       labels:
         app: volcano-scheduler
     spec:
+      imagePullSecrets:
+        - name: harbor-platform-readonly-secret
       serviceAccount: volcano-scheduler
       priorityClassName: system-cluster-critical
+      nodeSelector:
+        node-role.kubernetes.io/baai-infra: ""
+        node-role.kubernetes.io/baai-infra-ib: ""
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/baai-infra
+          operator: Exists
       containers:
         - name: volcano-scheduler
-          image: volcanosh/vc-scheduler:latest
+          image: harbor-dev.platform.baai-inner.ac.cn/airs-system/business/vc-scheduler:v1.6.0.gang
           args:
             - --logtostderr
             - --scheduler-conf=/volcano.scheduler/volcano-scheduler.conf
@@ -8663,10 +8672,17 @@ spec:
             - --enable-metrics=true
             - -v=3
             - 2>&1
-          imagePullPolicy: "IfNotPresent"
+          imagePullPolicy: "Always"
           volumeMounts:
             - name: scheduler-config
               mountPath: /volcano.scheduler
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 100Gi
+            requests:
+              cpu: 100m
+              memory: 10Gi
       volumes:
         - name: scheduler-config
           configMap:
