@@ -1,0 +1,4 @@
+FROM alpine:latest
+
+ADD vc-controller-manager /vc-controller-manager
+ENTRYPOINT ["/vc-controller-manager"]

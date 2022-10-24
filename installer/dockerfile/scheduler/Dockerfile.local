@@ -1,0 +1,3 @@
+FROM alpine:latest
+ADD vc-scheduler /vc-scheduler
+ENTRYPOINT ["/vc-scheduler"]

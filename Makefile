@@ -104,6 +104,19 @@ images:
 		docker buildx build -t "${IMAGE_PREFIX}/vc-$$name:$(TAG)" . -f ./installer/dockerfile/$$name/Dockerfile --output=type="${BUILDX_OUTPUT_TYPE}" --platform "${DOCKER_PLATFORMS}"; \
 	done
 
+local-images:
+	for name in controller-manager scheduler webhook-manager; do\
+		cp ${BIN_DIR}/vc-$$name ./installer/dockerfile/$$name/;\
+		if [ ${REL_OSARCH} = linux/amd64 ];then\
+			docker build --no-cache -t $(IMAGE_PREFIX)-$$name:$(TAG) -f ./installer/dockerfile/$$name/Dockerfile.local ./installer/dockerfile/$$name;\
+		elif [ ${REL_OSARCH} = linux/arm64 ];then\
+			docker build --no-cache -t $(IMAGE_PREFIX)-$$name-arm64:$(TAG) -f ./installer/dockerfile/$$name/Dockerfile.arm64 ./installer/dockerfile/$$name;\
+		else\
+			echo "only support x86_64 and arm64. Please build image according to your architecture";\
+		fi;\
+		rm installer/dockerfile/$$name/vc-$$name;\
+	done
+
 generate-code:
 	./hack/update-gencode.sh
 
