@@ -8530,6 +8530,7 @@ data:
     - plugins:
       - name: priority
       - name: gang
+        enableJobStarving: false
       - name: conformance
     - plugins:
       - name: overcommit
@@ -8673,7 +8674,7 @@ spec:
             - --scheduler-conf=/volcano.scheduler/volcano-scheduler.conf
             - --enable-healthz=true
             - --enable-metrics=true
-            - -v=3
+            - -v=5
             - 2>&1
           imagePullPolicy: "Always"
           volumeMounts:
