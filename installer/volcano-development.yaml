@@ -145,7 +145,7 @@ spec:
             - --port=8443
             - -v=4
             - 2>&1
-          image: harbor-dev.platform.baai-inner.ac.cn/airs-system/business/vc-webhook-manager:v1.6.0.gang
+          image: harbor.platform.baai-inner.ac.cn/baai-third/volcanosh/volcanosh-webhook-manager:v1.6.0.preempt
           imagePullPolicy: IfNotPresent
           name: admission
           volumeMounts:
@@ -154,6 +154,20 @@ spec:
               readOnly: true
             - mountPath: /admission.local.config/configmap
               name: admission-config
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+            requests:
+              cpu: 100m
+              memory: 100M
+      nodeSelector:
+        node-role.kubernetes.io/baai-infra: ''
+        node-role.kubernetes.io/baai-infra-ib: ''
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/baai-infra
+        operator: Exists
       volumes:
         - name: admission-certs
           secret:
@@ -180,7 +194,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: main
-          image: harbor-dev.platform.baai-inner.ac.cn/airs-system/business/vc-webhook-manager:v1.6.0.gang
+          image: harbor.platform.baai-inner.ac.cn/baai-third/volcanosh/volcanosh-webhook-manager:v1.6.0.preempt
           imagePullPolicy: IfNotPresent
           command: ["./gen-admission-secret.sh", "--service", "volcano-admission-service", "--namespace",
                     "volcano-system", "--secret", "volcano-admission-secret"]
@@ -8498,13 +8512,27 @@ spec:
       priorityClassName: system-cluster-critical
       containers:
           - name: volcano-controllers
-            image: harbor-dev.platform.baai-inner.ac.cn/airs-system/business/vc-controller-manager:v1.6.0.gang
+            image: harbor.platform.baai-inner.ac.cn/baai-third/volcanosh/volcanosh-controller-manager:v1.6.0.preempt
             args:
               - --logtostderr
               - --enable-healthz=true
               - -v=4
               - 2>&1
             imagePullPolicy: "IfNotPresent"
+            resources:
+              limits:
+                cpu: 1000m
+                memory: 2Gi
+              requests:
+                cpu: 100m
+                memory: 100M
+      nodeSelector:
+        node-role.kubernetes.io/baai-infra: ''
+        node-role.kubernetes.io/baai-infra-ib: ''
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/baai-infra
+        operator: Exists
 ---
 # Source: volcano/templates/scheduler.yaml
 apiVersion: v1
@@ -8526,12 +8554,16 @@ data:
     - plugins:
       - name: priority
       - name: gang
+        enableJobStarving: false
+        enableReclaimable: false
+        enablePreemptable: false
       - name: conformance
     - plugins:
       - name: overcommit
       - name: drf
       - name: predicates
       - name: proportion
+        enableJobEnqueued: false
       - name: nodeorder
       - name: binpack
 ---
@@ -8663,13 +8695,13 @@ spec:
           operator: Exists
       containers:
         - name: volcano-scheduler
-          image: harbor-dev.platform.baai-inner.ac.cn/airs-system/business/vc-scheduler:v1.6.0.gang
+          image: harbor.platform.baai-inner.ac.cn/baai-third/volcanosh/volcanosh-scheduler:v1.6.0.preempt
           args:
             - --logtostderr
             - --scheduler-conf=/volcano.scheduler/volcano-scheduler.conf
             - --enable-healthz=true
             - --enable-metrics=true
-            - -v=3
+            - -v=5
             - 2>&1
           imagePullPolicy: "Always"
           volumeMounts:
@@ -8677,11 +8709,11 @@ spec:
               mountPath: /volcano.scheduler
           resources:
             limits:
-              cpu: 1000m
-              memory: 100Gi
-            requests:
-              cpu: 100m
+              cpu: 8000m
               memory: 10Gi
+            requests:
+              cpu: 1000m
+              memory: 5Gi
       volumes:
         - name: scheduler-config
           configMap:
