@@ -104,6 +104,11 @@ func (ssn *Session) AddOverusedFn(name string, fn api.ValidateFn) {
 	ssn.overusedFns[name] = fn
 }
 
+// AddOverusedWithParameterFn add overused function
+func (ssn *Session) AddOverusedWithParameterFn(name string, fn api.ValidateWithParameterFn) {
+	ssn.overusedWithParameterFns[name] = fn
+}
+
 // AddAllocatableFn add allocatable function
 func (ssn *Session) AddAllocatableFn(name string, fn api.AllocatableFn) {
 	ssn.allocatableFns[name] = fn
@@ -255,6 +260,23 @@ func (ssn *Session) Overused(queue *api.QueueInfo) bool {
 				continue
 			}
 			if of(queue) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// OverusedWithParameter invoke overused function of the plugins
+func (ssn *Session) OverusedWithParameter(queue *api.QueueInfo, request *api.Resource) bool {
+	for _, tier := range ssn.Tiers {
+		for _, plugin := range tier.Plugins {
+			of, found := ssn.overusedWithParameterFns[plugin.Name]
+			if !found {
+				continue
+			}
+			if of(queue, request) {
 				return true
 			}
 		}

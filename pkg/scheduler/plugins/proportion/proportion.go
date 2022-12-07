@@ -297,6 +297,30 @@ func (pp *proportionPlugin) OnSessionOpen(ssn *framework.Session) {
 		return overused
 	})
 
+	ssn.AddOverusedWithParameterFn(pp.Name(), func(queueInfo interface{}, request interface{}) bool {
+		queue := queueInfo.(*api.QueueInfo)
+		attr := pp.queueOpts[queue.UID]
+		requestRes := request.(*api.Resource)
+
+		overused := attr.deserved.LessEqual(attr.allocated, api.Zero)
+		metrics.UpdateQueueOverused(attr.name, overused)
+		if overused {
+			klog.V(3).Infof("Queue <%v>: deserved <%v>, allocated <%v>, share <%v>",
+				queue.Name, attr.deserved, attr.allocated, attr.share)
+		} else {
+			tmpRes := attr.allocated.Clone()
+			tmpRes.Add(requestRes)
+			overused = attr.deserved.LessEqual(tmpRes, api.Zero)
+			if overused {
+				klog.V(3).Infof("Queue <%v>: deserved <%v>, allocated <%v>, share <%v>, toAllocated <%v>",
+					queue.Name, attr.deserved, attr.allocated, attr.share, requestRes)
+			}
+		}
+
+		return overused
+
+	})
+
 	ssn.AddAllocatableFn(pp.Name(), func(queue *api.QueueInfo, candidate *api.TaskInfo) bool {
 		attr := pp.queueOpts[queue.UID]
 
