@@ -8564,6 +8564,14 @@ data:
         enableJobEnqueued: false
       - name: nodeorder
       - name: binpack
+        arguments:
+          binpack.weight: 17
+          binpack.cpu: 1
+          binpack.memory: 1
+          binpack.resources: nvidia.com/gpu, baidu.com/xpu, cambricon.com/mlu
+          binpack.resources.nvidia.com/gpu: 5
+          binpack.resources.baidu.com/xpu: 5
+          binpack.resources.cambricon.com/mlu: 5
 ---
 # Source: volcano/templates/scheduler.yaml
 kind: ClusterRole
