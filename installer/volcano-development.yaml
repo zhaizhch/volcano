@@ -145,7 +145,7 @@ spec:
             - --port=8443
             - -v=4
             - 2>&1
-          image: harbor.platform.baai-inner.ac.cn/baai-third/volcanosh/volcanosh-webhook-manager:release-v1.6.0
+          image: harbor.platform.baai-inner.ac.cn/baai-third/volcanosh/volcanosh-webhook-manager:release-v1.6.0-binpack
           imagePullPolicy: IfNotPresent
           name: admission
           volumeMounts:
@@ -193,7 +193,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: main
-          image: harbor.platform.baai-inner.ac.cn/baai-third/volcanosh/volcanosh-webhook-manager:release-v1.6.0
+          image: harbor.platform.baai-inner.ac.cn/baai-third/volcanosh/volcanosh-webhook-manager:release-v1.6.0-binpack
           imagePullPolicy: IfNotPresent
           command: ["./gen-admission-secret.sh", "--service", "volcano-admission-service", "--namespace",
                     "volcano-system", "--secret", "volcano-admission-secret"]
@@ -8511,7 +8511,7 @@ spec:
       priorityClassName: system-cluster-critical
       containers:
           - name: volcano-controllers
-            image: harbor.platform.baai-inner.ac.cn/baai-third/volcanosh/volcanosh-controller-manager:release-v1.6.0
+            image: harbor.platform.baai-inner.ac.cn/baai-third/volcanosh/volcanosh-controller-manager:release-v1.6.0-binpack
             args:
               - --logtostderr
               - --enable-healthz=true
@@ -8700,7 +8700,7 @@ spec:
           operator: Exists
       containers:
         - name: volcano-scheduler
-          image: harbor.platform.baai-inner.ac.cn/baai-third/volcanosh/volcanosh-scheduler:release-v1.6.0
+          image: harbor.platform.baai-inner.ac.cn/baai-third/volcanosh/volcanosh-scheduler:release-v1.6.0-binpack
           args:
             - --logtostderr
             - --scheduler-conf=/volcano.scheduler/volcano-scheduler.conf
