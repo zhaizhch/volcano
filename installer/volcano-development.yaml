@@ -8547,7 +8547,7 @@ metadata:
   namespace: volcano-system
 data:
   volcano-scheduler.conf: |
-    actions: "enqueue, reclaim, allocate, preempt, backfill"
+    actions: "enqueue, allocate, reclaim, preempt, backfill"
     tiers:
     - plugins:
       - name: priority
