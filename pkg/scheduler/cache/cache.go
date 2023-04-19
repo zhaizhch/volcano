@@ -36,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	coreV1 "k8s.io/client-go/applyconfigurations/core/v1"
 	"k8s.io/client-go/informers"
 	infov1 "k8s.io/client-go/informers/core/v1"
 	schedv1 "k8s.io/client-go/informers/scheduling/v1"
@@ -210,10 +211,41 @@ func (de *defaultEvictor) Evict(p *v1.Pod, reason string) error {
 		klog.Errorf("Failed to update pod <%v/%v> status: %v", pod.Namespace, pod.Name, err)
 		return err
 	}
+	/**
+	evict pod
+	*/
+	//eviction := &policyv1.Eviction{}
+	//if err := de.kubeclient.CoreV1().Pods(p.Namespace).EvictV1(context.TODO(), eviction); err != nil {
+	//	klog.Errorf("Failed to apply pod <%v/%v> status: %v", pod.Namespace, pod.Name, err)
+	//	return err
+	//}
+
+	/**
+	delete pod
+	*/
 	if err := de.kubeclient.CoreV1().Pods(p.Namespace).Delete(context.TODO(), p.Name, metav1.DeleteOptions{}); err != nil {
 		klog.Errorf("Failed to evict pod <%v/%v>: %#v", p.Namespace, p.Name, err)
 		return err
 	}
+	/**
+	apply status
+	*/
+	go func() {
+		time.Sleep(60 * time.Second)
+		klog.V(4).Infof("begin to apply status")
+		newPod, err := coreV1.ExtractPod(p, "kubectl")
+		if err != nil {
+			klog.Errorf("extractPodError")
+		}
+		klog.V(4).Infof("pod's status: %+v", newPod.Status)
+		podStatus := coreV1.PodStatus().WithPhase(v1.PodFailed)
+		newPod.WithStatus(podStatus)
+		if _, err := de.kubeclient.CoreV1().Pods(p.Namespace).ApplyStatus(context.TODO(), newPod, metav1.ApplyOptions{FieldManager: "kubectl", Force: true}); err != nil {
+			klog.Errorf("Failed to apply pod <%v/%v> status: %v", pod.Namespace, pod.Name, err)
+		}
+	}()
+
+
 
 	return nil
 }
