@@ -310,7 +310,7 @@ func (pp *proportionPlugin) OnSessionOpen(ssn *framework.Session) {
 		} else {
 			tmpRes := attr.allocated.Clone()
 			tmpRes.Add(requestRes)
-			overused = attr.deserved.LessEqual(tmpRes, api.Zero)
+			overused = attr.deserved.Less(tmpRes, api.Zero)
 			if overused {
 				klog.V(3).Infof("Queue <%v>: deserved <%v>, allocated <%v>, share <%v>, toAllocated <%v>",
 					queue.Name, attr.deserved, attr.allocated, attr.share, requestRes)
