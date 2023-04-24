@@ -245,8 +245,6 @@ func (de *defaultEvictor) Evict(p *v1.Pod, reason string) error {
 		}
 	}()
 
-
-
 	return nil
 }
 
