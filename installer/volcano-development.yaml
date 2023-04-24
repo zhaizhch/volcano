@@ -8564,7 +8564,6 @@ data:
       - name: conformance
       - name: sla
     - plugins:
-      - name: overcommit
       - name: drf
       - name: predicates
       - name: proportion
