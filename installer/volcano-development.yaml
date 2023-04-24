@@ -132,6 +132,8 @@ spec:
     spec:
       serviceAccount: volcano-admission
       priorityClassName: system-cluster-critical
+      imagePullSecrets:
+        - name: harbor-platform-readonly-secret
       containers:
         - args:
             - --enabled-admission=/jobs/mutate,/jobs/validate,/podgroups/mutate,/pods/validate,/pods/mutate,/queues/mutate,/queues/validate
@@ -191,6 +193,8 @@ spec:
       serviceAccountName: volcano-admission
       priorityClassName: system-cluster-critical
       restartPolicy: Never
+      imagePullSecrets:
+        - name: harbor-platform-readonly-secret
       containers:
         - name: main
           image: harbor.platform.baai-inner.ac.cn/baai-third/volcanosh/volcanosh-webhook-manager:release-v1.6.0-newquota
@@ -8509,6 +8513,8 @@ spec:
     spec:
       serviceAccount: volcano-controllers
       priorityClassName: system-cluster-critical
+      imagePullSecrets:
+        - name: harbor-platform-readonly-secret
       containers:
           - name: volcano-controllers
             image: harbor.platform.baai-inner.ac.cn/baai-third/volcanosh/volcanosh-controller-manager:release-v1.6.0-newquota
