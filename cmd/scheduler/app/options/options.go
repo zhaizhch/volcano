@@ -53,6 +53,7 @@ type ServerOption struct {
 	DefaultQueue         string
 	PrintVersion         bool
 	EnableMetrics        bool
+	EnableApplyStatus    bool
 	ListenAddress        string
 	EnablePriorityClass  bool
 	EnableCSIStorage     bool
@@ -113,6 +114,7 @@ func (s *ServerOption) AddFlags(fs *pflag.FlagSet) {
 		"Enable tracking of available storage capacity that CSI drivers provide; it is false by default")
 	fs.BoolVar(&s.EnableHealthz, "enable-healthz", false, "Enable the health check; it is false by default")
 	fs.BoolVar(&s.EnableMetrics, "enable-metrics", false, "Enable the metrics function; it is false by default")
+	fs.BoolVar(&s.EnableApplyStatus, "enable-applystatus", false, "Enable the applyStatus function; it is false by default")
 	fs.StringSliceVar(&s.NodeSelector, "node-selector", nil, "volcano only work with the labeled node, like: --node-selector=volcano.sh/role:train --node-selector=volcano.sh/role:serving")
 }
 

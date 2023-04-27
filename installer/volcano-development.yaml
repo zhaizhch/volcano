@@ -8712,6 +8712,7 @@ spec:
             - --scheduler-conf=/volcano.scheduler/volcano-scheduler.conf
             - --enable-healthz=true
             - --enable-metrics=true
+            - --enable-applystatus=true
             - -v=5
             - 2>&1
           imagePullPolicy: "Always"
