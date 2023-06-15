@@ -23,6 +23,10 @@ import (
 	"volcano.sh/apis/pkg/apis/scheduling/v1beta1"
 )
 
+const (
+	QueueResourceTypeLabel = "resource.baai.ac.cn/type"
+)
+
 // QueueID is UID type, serves as unique ID for each queue
 type QueueID types.UID
 

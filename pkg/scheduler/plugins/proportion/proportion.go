@@ -172,38 +172,49 @@ func (pp *proportionPlugin) OnSessionOpen(ssn *framework.Session) {
 		metrics.UpdateQueuePodGroupUnknownCount(attr.name, queue.Queue.Status.Unknown)
 	}
 
-	remaining := pp.totalResource.Clone()
+	remainingMap := ssn.AcceleratorTotalResource.Clone()
 	meet := map[api.QueueID]struct{}{}
 	for {
-		totalWeight := int32(0)
+		totalWeightMap := api.NewWeightMap()
 		for _, attr := range pp.queueOpts {
 			if _, found := meet[attr.queueID]; found {
 				continue
 			}
-			totalWeight += attr.weight
+			resourceType := getQueueResourceType(ssn, attr.queueID)
+			klog.V(4).Infof("resource type: %+v(%+v)", resourceType, ssn.Queues[attr.queueID].Name)
+			totalWeightMap[resourceType] += attr.weight
 		}
+		klog.V(4).Infof("total weight map: %+v", totalWeightMap)
 
 		// If no queues, break
-		if totalWeight == 0 {
+		if totalWeightMap.IsZero() {
 			klog.V(4).Infof("Exiting when total weight is 0")
 			break
 		}
 
-		oldRemaining := remaining.Clone()
+		oldRemainingMap := remainingMap.Clone()
 		// Calculates the deserved of each Queue.
 		// increasedDeserved is the increased value for attr.deserved of processed queues
 		// decreasedDeserved is the decreased value for attr.deserved of processed queues
-		increasedDeserved := api.EmptyResource()
-		decreasedDeserved := api.EmptyResource()
+		increasedDeservedMap := api.EmptyResourceMap()
+		decreasedDeservedMap := api.EmptyResourceMap()
 		for _, attr := range pp.queueOpts {
 			klog.V(4).Infof("Considering Queue <%s>: weight <%d>, total weight <%d>.",
-				attr.name, attr.weight, totalWeight)
+				attr.name, attr.weight, totalWeightMap)
 			if _, found := meet[attr.queueID]; found {
 				continue
 			}
 
 			oldDeserved := attr.deserved.Clone()
-			attr.deserved.Add(remaining.Clone().Multi(float64(attr.weight) / float64(totalWeight)))
+
+			//resourceType := getQueueResourceType(ssn, attr.queueID)
+			resourceType := getQueueResourceType(ssn, attr.queueID)
+			if _, exist := ssn.AcceleratorTotalResource[resourceType]; !exist {
+				klog.V(4).Infof("don't exist %+v", resourceType)
+				continue
+			}
+
+			attr.deserved.Add(remainingMap[resourceType].Clone().Multi(float64(attr.weight) / float64(totalWeightMap[resourceType])))
 
 			if attr.realCapability != nil {
 				attr.deserved.MinDimensionResource(attr.realCapability, api.Infinity)
@@ -226,17 +237,24 @@ func (pp *proportionPlugin) OnSessionOpen(ssn *framework.Session) {
 				attr.name, attr.deserved, attr.realCapability, attr.allocated, attr.request, attr.elastic, attr.share)
 
 			increased, decreased := attr.deserved.Diff(oldDeserved, api.Zero)
-			increasedDeserved.Add(increased)
-			decreasedDeserved.Add(decreased)
+
+			if _, exist := increasedDeservedMap[resourceType]; !exist {
+				increasedDeservedMap[resourceType] = api.EmptyResource()
+			}
+			increasedDeservedMap[resourceType].Add(increased)
+
+			if _, exist := decreasedDeservedMap[resourceType]; !exist {
+				decreasedDeservedMap[resourceType] = api.EmptyResource()
+			}
+			decreasedDeservedMap[resourceType].Add(decreased)
 
 			// Record metrics
 			metrics.UpdateQueueDeserved(attr.name, attr.deserved.MilliCPU, attr.deserved.Memory)
 		}
+		remainingMap.Sub(increasedDeservedMap).Add(decreasedDeservedMap)
 
-		remaining.Sub(increasedDeserved).Add(decreasedDeserved)
-		klog.V(4).Infof("Remaining resource is  <%s>", remaining)
-		if remaining.IsEmpty() || reflect.DeepEqual(remaining, oldRemaining) {
-			klog.V(4).Infof("Exiting when remaining is empty or no queue has more reosurce request:  <%v>", remaining)
+		if remainingMap.IsEmpty() || reflect.DeepEqual(remainingMap, oldRemainingMap) {
+			klog.V(4).Infof("Exiting when remaining is empty or no queue has more reosurce request:  <%v>", remainingMap)
 			break
 		}
 	}
@@ -390,6 +408,12 @@ func (pp *proportionPlugin) OnSessionOpen(ssn *framework.Session) {
 				event.Task.Namespace, event.Task.Name, event.Task.Resreq, attr.share)
 		},
 	})
+}
+
+func getQueueResourceType(ssn *framework.Session, queueID api.QueueID) string {
+	resourceType := ssn.Queues[queueID].Queue.Labels[api.QueueResourceTypeLabel]
+	klog.V(4).Infof("queue(%+v)'s resourceType: %+v", queueID, resourceType)
+	return resourceType
 }
 
 func (pp *proportionPlugin) OnSessionClose(ssn *framework.Session) {

@@ -27,6 +27,10 @@ import (
 	"volcano.sh/apis/pkg/apis/scheduling/v1beta1"
 )
 
+const (
+	NodeResourceTypeLabel = "machine.baai.ac.cn/accelerator"
+)
+
 type AllocateFailError struct {
 	Reason string
 }

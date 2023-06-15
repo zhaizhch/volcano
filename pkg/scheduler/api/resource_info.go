@@ -18,6 +18,7 @@ package api
 
 import (
 	"fmt"
+	"k8s.io/klog"
 	"math"
 	"strings"
 
@@ -60,9 +61,18 @@ type Resource struct {
 	MaxTaskNum int
 }
 
+// ResourceMap defines resourceMap type
+type ResourceMap map[string]*Resource
+
 // EmptyResource creates a empty resource object and returns
 func EmptyResource() *Resource {
 	return &Resource{}
+}
+
+// EmptyResourceMap creates a empty resourceMap object and returns
+func EmptyResourceMap() map[string]*Resource {
+	rm := make(map[string]*Resource)
+	return rm
 }
 
 // NewResource creates a new resource object from resource list
@@ -133,6 +143,34 @@ func (r *Resource) Clone() *Resource {
 	return clone
 }
 
+// Clone is used to clone a resourceMap type, which is a deep copy function.
+func (rm ResourceMap) Clone() ResourceMap {
+	clone := make(map[string]*Resource)
+	for key, value := range rm {
+		clone[key] = value.Clone()
+	}
+	return clone
+}
+
+// WeightMap defines weight map
+type WeightMap map[string]int32
+
+// NewWeightMap return a new weight map
+func NewWeightMap() WeightMap {
+	wm := make(map[string]int32)
+	return wm
+}
+
+// IsZero returns false if any weight isn't zero, else return true
+func (wm WeightMap) IsZero() bool {
+	for _, w := range wm {
+		if w != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 // String returns resource details in string format
 func (r *Resource) String() string {
 	str := fmt.Sprintf("cpu %0.2f, memory %0.2f", r.MilliCPU, r.Memory)
@@ -193,6 +231,17 @@ func (r *Resource) IsEmpty() bool {
 	return true
 }
 
+// IsEmpty returns false if any kind of resource is not less than min value, otherwise returns true
+func (rm ResourceMap) IsEmpty() bool {
+	for _, r := range rm {
+		if !r.IsEmpty() {
+			return false
+		}
+	}
+
+	return true
+}
+
 // IsZero returns false if the given kind of resource is not less than min value
 func (r *Resource) IsZero(rn v1.ResourceName) bool {
 	switch rn {
@@ -227,10 +276,33 @@ func (r *Resource) Add(rr *Resource) *Resource {
 	return r
 }
 
+func (rm ResourceMap) Add(rr ResourceMap) ResourceMap {
+	for acceleratorType, _ := range rm {
+		if _, exist := rr[acceleratorType]; !exist {
+			klog.V(4).Infof("accelerator(%+v) doesn't exist in rr", acceleratorType)
+			continue
+		}
+		rm[acceleratorType].Add(rr[acceleratorType])
+
+	}
+	return rm
+}
+
 // Sub subtracts two Resource objects with assertion.
 func (r *Resource) Sub(rr *Resource) *Resource {
 	assert.Assertf(rr.LessEqual(r, Zero), "resource is not sufficient to do operation: <%v> sub <%v>", r, rr)
 	return r.sub(rr)
+}
+
+func (rm ResourceMap) Sub(rr ResourceMap) ResourceMap {
+	for acceleratorType, _ := range rm {
+		if _, exist := rr[acceleratorType]; !exist {
+			klog.V(4).Infof("accelerator(%+v) doesn't exist in rr", acceleratorType)
+			continue
+		}
+		rm[acceleratorType].Sub(rr[acceleratorType])
+	}
+	return rm
 }
 
 // sub subtracts two Resource objects.

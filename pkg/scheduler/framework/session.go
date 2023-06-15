@@ -49,7 +49,8 @@ type Session struct {
 	restConfig      *rest.Config
 	informerFactory informers.SharedInformerFactory
 
-	TotalResource *api.Resource
+	TotalResource            *api.Resource
+	AcceleratorTotalResource api.ResourceMap
 	// podGroupStatus cache podgroup status during schedule
 	// This should not be mutated after initiated
 	podGroupStatus map[api.JobID]scheduling.PodGroupStatus
@@ -103,8 +104,9 @@ func openSession(cache cache.Cache) *Session {
 		cache:           cache,
 		informerFactory: cache.SharedInformerFactory(),
 
-		TotalResource:  api.EmptyResource(),
-		podGroupStatus: map[api.JobID]scheduling.PodGroupStatus{},
+		TotalResource:            api.EmptyResource(),
+		AcceleratorTotalResource: map[string]*api.Resource{},
+		podGroupStatus:           map[api.JobID]scheduling.PodGroupStatus{},
 
 		Jobs:           map[api.JobID]*api.JobInfo{},
 		Nodes:          map[string]*api.NodeInfo{},
@@ -177,7 +179,14 @@ func openSession(cache cache.Cache) *Session {
 	// calculate all nodes' resource only once in each schedule cycle, other plugins can clone it when need
 	for _, n := range ssn.Nodes {
 		ssn.TotalResource.Add(n.Allocatable)
+		acceleratorType := n.Node.Labels[api.NodeResourceTypeLabel]
+		klog.V(4).Infof("node(%+v)'s accelerator type is: %+v", n.Node.Name, acceleratorType)
+		if _, exist := ssn.AcceleratorTotalResource[acceleratorType]; !exist {
+			ssn.AcceleratorTotalResource[acceleratorType] = api.EmptyResource()
+		}
+		ssn.AcceleratorTotalResource[acceleratorType].Add(n.Allocatable)
 	}
+	klog.V(4).Infof("acceleratorTotalResource: %+v", ssn.AcceleratorTotalResource)
 
 	klog.V(3).Infof("Open Session %v with <%d> Job and <%d> Queues",
 		ssn.UID, len(ssn.Jobs), len(ssn.Queues))
